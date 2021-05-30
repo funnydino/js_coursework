@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Aleksey Ponomarev: funnydino1@gmail.com">
+  <meta name="description"
+    content="Обучение профессии Frontend-разработчика в SkillBox. Курсовая работа по модулю Базовый JS.">
+  <link rel="preload" href="./fonts/opensans-regular-webfont.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="preload" href="./fonts/opensans-semibold-webfont.woff2" as="font" type="font/woff2"
+    crossorigin="anonymous">
+  <link rel="preload" href="./fonts/opensans-bold-webfont.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="icon" href="./img/favicon.png" type="image/png">
+  <link rel="stylesheet" href="./css/normalize.css">
+  <link rel="stylesheet" href="./css/choices.min.css">
+  <link rel="stylesheet" href="./css/fonts.css">
+  <link rel="stylesheet" href="./css/styles.css">
+  <script defer src="./js/focus-visible.min.js"></script>
+  <script defer src="./js/choices.min.js"></script>
+  <script defer src="./js/main.js"></script>
+  <title>Курсовая работа по модулю Базовый JS</title>
+</head>
+
+<body class="body">
+
+  <div class="overlay fix-block"></div>
+
+  <div class="page">
+
+    <!-- Header -->
+
+    <header class="header fix-block">
+      <div class="container header__container">
+        <div class="header__inner">
+          <a class="header__link" href="." aria-label="Переагрузить страницу"></a>
+          <form class="header__search search" action="#" method="GET" aria-label="Поиск в таблице">
+            <input class="search__input" type="text" autocomplete="off" placeholder="Введите запрос">
+          </form>
+        </div>
+      </div>
+    </header> <!-- /.header -->
+
+    <main class="content">
+
+      <!-- Clients Section -->
+
+      <section class="clients">
+        <div class="container clients__container">
+          <h1 class="main-title clients__title">
+            Клиенты
+          </h1>
+          <button class="btn popup-btn new-user__btn" data-path="new-client">
+            <svg class="new-user__icon">
+              <use xlink:href="./img/svg/sprite.svg#new-user"></use>
+            </svg>
+            Добавить клиента
+          </button>
+        </div>
+      </section> <!-- /.clients -->
+
+    </main>
+
+    <!-- Footer -->
+
+    <footer class="footer">
+      <div class="container footer__container">
+        <div class="footer__inner">
+          &copy; <span class="footer__year"></span>.
+          <a class="footer__mail" href="mailto:funnydino1@gmail.com">funnydino1@gmail.com</a>
+        </div>
+      </div>
+    </footer> <!-- /.footer -->
+
+  </div>
+
+  <!-- Popups -->
+
+  <div class="popups">
+    <div class="popup-overlay">
+      <div class="popup popup--new-client" data-target="new-client">
+        <button class="popup__close-btn"></button>
+        <form class="form popup__form popup__form--new-client" action="#" aria-label="Форма создания клиента">
+          <h2 class="section-title form__title">
+            Новый клиент
+          </h2>
+          <div class="form__placeholder">
+            <input id="surname" class="popup__form-input popup__form-input--surname" type="text" name="surname">
+            <label class="form__placeholder-label" for="surname">Фамилия<span>*</span></label>
+          </div>
+          <div class="form__placeholder">
+            <input id="name" class="popup__form-input popup__form-input--name" type="text" name="name">
+            <label class="form__placeholder-label" for="name">Имя<span>*</span></label>
+          </div>
+          <div class="form__placeholder">
+            <input id="middlename" class="popup__form-input popup__form-input--middlename" type="text"
+              name="middlename">
+            <label class="form__placeholder-label" for="middlename">Отчество</label>
+          </div>
+          <div class="popup-form__contacts form-contacts">
+            <!-- <div class="form-contacts__item contacts-item">
+              <select class="contacts-item__select" name="contacts" aria-label="Выбор способа связи">
+                <option value="phone">Телефон</option>
+                <option value="add-phone">Доп. телефон</option>
+                <option value="email">Email</option>
+                <option value="vk">ВКонтакте</option>
+                <option value="facebook">Facebook</option>
+                <option value="other">Другое</option>
+              </select>
+              <input class="contacts-item__input" type="text" placeholder="Введите данные контакта">
+              <button class="contacts-item__delete-btn">
+                <svg class="delete__icon">
+                  <use xlink:href="./img/svg/sprite.svg#delete"></use>
+                </svg>
+              </button>
+            </div> -->
+          </div>
+          <button class="form__btn add-contact__btn">
+            <span>Добавить контакт</span>
+          </button>
+          <button class="btn popup__form-submit" type="submit">Сохранить</button>
+          <button class="popup__form-cancel">Отмена</button>
+        </form>
+      </div>
+    </div>
+  </div> <!-- /.popups -->
+
+</body>
+
+</html>
