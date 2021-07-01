@@ -4,6 +4,8 @@
 
   document.addEventListener('DOMContentLoaded', () => {
 
+    const $body = document.querySelector('.body');
+    const $fixBlocks = document.querySelectorAll('.fix-block');
     const $tableFilter = document.querySelector('.search__input');
     const $clientsTable = document.querySelector('.clients__table');
     const $tableSort = document.querySelectorAll('.table__head-cell--sortable');
@@ -11,7 +13,7 @@
     const $tableRows = $tableBody.getElementsByTagName('tr');
     const $tableFooter = document.querySelector('.table__footer');
     const $popupBtns = document.querySelectorAll('.popup-btn');
-    const $popupOverlay = document.querySelector('.popup-overlay');
+    const $popupOverlay = document.querySelectorAll('.popup-overlay');
     const $popups = document.querySelectorAll('.popup');
     const $popupCloseBtns = document.querySelectorAll('.popup__close-btn');
     const $popupTitle = document.querySelector('.popup__title');
@@ -22,90 +24,68 @@
     const $popupInputMiddlename = document.querySelector('.popup__form-input--middlename');
     const $addContactBtn = document.querySelector('.add-contact-btn');
     const $contactsBlock = document.querySelector('.form-contacts');
+    const $errorDescription = document.querySelectorAll('.form__error-msg');
+    const $popupSubmitBtns = document.querySelectorAll('.popup__submit-btn');
     const $createClientBtn = document.querySelector('.popup__form-submit');
     const $editClientBtn = document.querySelector('.popup__form-edit');
     const $popupCancelBtns = document.querySelectorAll('.popup__cancel-btn');
     const $deleteClientBtn = document.querySelector('.popup__delete-btn');
     const $submitDeleteClientBtn = document.querySelector('.popup__del-submit');
+    const $newUserBtn = document.querySelector('.new-user-btn');
 
-    const clients = [];
-
+    let clients = new Array();
     let currentClientID;
 
-    // Сортировка таблицы:
+    // Отображение и скрытие элементов на странице:
 
-    $tableSort.forEach((item) => item.querySelector('span').addEventListener('click', () => {
-      if (!item.classList.contains('table__head-cell--sorted', 'table__head-cell--reversed') || item.classList.contains('table__head-cell--reversed')) {
-        $tableSort.forEach(el => el.classList.remove('table__head-cell--sorted', 'table__head-cell--reversed'));
-        item.classList.add('table__head-cell--sorted');
-        if (item.dataset.sort == 0) {
-          numbersSort(item.dataset.sort);
-        } else if (item.dataset.sort == 1) {
-          textSort(item.dataset.sort);
-        } else if (item.dataset.sort == 2 || item.dataset.sort == 3) {
-          dateSort(item.dataset.sort);
-        };
-      } else if (item.classList.contains('table__head-cell--sorted')) {
-        item.classList.replace('table__head-cell--sorted', 'table__head-cell--reversed');
-        if (item.dataset.sort == 0) {
-          numbersSort(item.dataset.sort, true);
-        } else if (item.dataset.sort == 1) {
-          textSort(item.dataset.sort, true);
-        } else if (item.dataset.sort == 2 || item.dataset.sort == 3) {
-          dateSort(item.dataset.sort, true);
-        };
-      };
-    }));
-
-    const numbersSort = (column, reversed) => {
-      let sortedRows = Array.from($tableRows);
-      if (!reversed) {
-        sortedRows.sort((rowA, rowB) => rowA.cells[column].innerText - rowB.cells[column].innerText);
-      } else {
-        sortedRows.sort((rowA, rowB) => rowB.cells[column].innerText - rowA.cells[column].innerText);
-      };
-      $clientsTable.tBodies[0].append(...sortedRows);
+    const hideElement = (el) => {
+      el.classList.add('_hidden');
     };
 
-    const textSort = (column, reversed) => {
-      let sortedRows = Array.from($tableRows);
-      if (!reversed) {
-        sortedRows.sort((rowA, rowB) => rowA.cells[column].innerText > rowB.cells[column].innerText ? 1 : -1);
-      } else {
-        sortedRows.sort((rowA, rowB) => rowA.cells[column].innerText > rowB.cells[column].innerText ? -1 : 1);
+    const showElement = (el) => {
+      if (el.classList.contains('_hidden')) {
+        el.classList.remove('_hidden');
       };
-      $clientsTable.tBodies[0].append(...sortedRows);
     };
 
-    const dateSort = (column, reversed) => {
-      let sortedRows = Array.from($tableRows);
-      if (!reversed) {
-        sortedRows.sort((rowA, rowB) => rowA.cells[column].dataset.date - rowB.cells[column].dataset.date);
-      } else {
-        sortedRows.sort((rowA, rowB) => rowB.cells[column].dataset.date - rowA.cells[column].dataset.date);
-      };
-      $clientsTable.tBodies[0].append(...sortedRows);
+    // Функция для имитации загруженности сервера:
+
+    const delay = ms => {
+      return new Promise(resolve => setTimeout(() => resolve(), ms));
     };
 
-    // Фильтрация таблицы:
+    // Disable & Enable Scroll (убираем 'прыжок' при открытии модального окна):
 
-    $tableFilter.addEventListener('input', () => {
-      Array.from($tableBody.querySelectorAll('tr')).forEach((el) => {
-        if (!el.classList.contains('table__row--hidden')) {
-          el.classList.add('table__row--hidden');
-        };
+    const disableScroll = () => {
+      const paddingOffset = window.innerWidth - document.body.offsetWidth + 'px';
+      $body.classList.add('body--lock');
+      $fixBlocks.forEach((el) => {
+        el.style.paddingRight = paddingOffset;
       });
-      tableFilter();
-    });
+      document.body.style.paddingRight = paddingOffset;
+    };
 
-    const tableFilter = () => {
-      let filterededRows = Array.from($tableRows).filter((row) => {
-        return row.cells[0].innerText.toLowerCase().includes($tableFilter.value.toLowerCase()) ||
-          row.cells[1].innerText.toLowerCase().includes($tableFilter.value.toLowerCase()) ||
-          row.cells[2].innerText.toLowerCase().includes($tableFilter.value.toLowerCase()) ||
-          row.cells[3].innerText.toLowerCase().includes($tableFilter.value.toLowerCase())
+    const enableScroll = () => {
+      $body.classList.remove('body--lock');
+      $fixBlocks.forEach((el) => {
+        el.style.paddingRight = '0px';
       });
-      filterededRows.forEach(el => el.classList.remove('table__row--hidden'));
+      document.body.style.paddingRight = '0px';
+    };
+
+    // Отрисовка таблицы:
+
+    const clearTable = () => {
+      if ($tableRows.length > 0) {
+        $tableBody.innerHTML = '';
+      };
+    };
+
+    const renderTable = (clients) => {
+      clearTable();
+      clients.forEach((el) => {
+        tableRow(el);
+      });
       if ($tableFilter.value) {
         $tableBody.classList.add('table--filtered');
         totalClients(true);
@@ -115,188 +95,83 @@
       };
     };
 
-    // Create New Contact:
+    // Сортировка таблицы:
 
-    $addContactBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      addContact();
-      checkContactsLength();
-    });
-
-    const addContact = (value, data) => {
-      if (value) {
-        value = value.includes('_') ? value.split('_').join('') : value;
+    $tableSort.forEach((item) => item.querySelector('span').addEventListener('click', () => {
+      if (!item.classList.contains('table__head-cell--sorted', 'table__head-cell--reversed') || item.classList.contains('table__head-cell--reversed')) {
+        $tableSort.forEach(el => el.classList.remove('table__head-cell--sorted', 'table__head-cell--reversed'));
+        item.classList.add('table__head-cell--sorted');
+        tableSort(item.dataset.sort);
+      } else if (item.classList.contains('table__head-cell--sorted')) {
+        item.classList.replace('table__head-cell--sorted', 'table__head-cell--reversed');
+        tableSort(item.dataset.sort, true);
       };
-      const contact = createNewContact(value, data);
-      $contactsBlock.append(contact);
-      choicesSelect();
-      maskInputs();
-    };
+    }));
 
-    const checkContactsLength = () => {
-      const contacts = document.querySelectorAll('.contacts-item');
-      if (contacts.length >= 10) {
-        $addContactBtn.classList.add('add-contact-btn--hidden');
-      } else if (contacts.length < 10 && $addContactBtn.classList.contains('add-contact-btn--hidden')) {
-        $addContactBtn.classList.remove('add-contact-btn--hidden');
+    const clientsFilter = (field) => {
+      if (field === 'id') {
+        return (a, b) => a[field] - b[field];
+      } else if (field === 'name') {
+        return (a, b) => `${a['surname']} ${a['name']} ${a['lastName']}` > `${b['surname']} ${b['name']} ${b['lastName']}` ? 1 : -1;
+      } else if (field === 'createdAt' || field === 'updatedAt') {
+        return (a, b) => (new Date(a[field]) - new Date(0)) - (new Date(b[field]) - new Date(0));
       };
     };
 
-    const createNewContact = (value, data) => {
-
-      const $contactBlock = createItem('div', 'form-contacts__item contacts-item', '', '', );
-      const $select = createItem('select', 'contacts-item__select', '', 'name', 'contacts');
-      const $option1 = createItem('option', '', 'Телефон', 'value', 'phone');
-      const $option2 = createItem('option', '', 'Доп. телефон', 'value', 'add-phone');
-      const $option3 = createItem('option', '', 'Email', 'value', 'email');
-      const $option4 = createItem('option', '', 'ВКонтакте', 'value', 'vk');
-      const $option5 = createItem('option', '', 'Facebook', 'value', 'facebook');
-      const $option6 = createItem('option', '', 'Другое', 'value', 'other');
-      const $input = createItem('input', 'contacts-item__input', '', 'type', 'tel');
-      const $delBtn = createItem('button', 'contacts-item__delete-btn', '', '', '');
-
-      $select.setAttribute('aria-label', 'Выбор способа связи');
-      $input.setAttribute('placeholder', 'Введите данные контакта');
-
-      $select.append($option1, $option2, $option3, $option4, $option5, $option6);
-      $contactBlock.append($select, $input, $delBtn);
-
-      if (value && data) {
-        $select.value = value;
-        $input.value = data;
-        changeInputType($input, value);
+    const tableSort = (column, reversed) => {
+      let field;
+      const filteredClients = tableFilter(clients);
+      if (column == 0) {
+        field = 'id';
+      } else if (column == 1) {
+        field = 'name';
+      } else if (column == 2) {
+        field = 'createdAt';
+      } else if (column == 3) {
+        field = 'updatedAt';
       };
-
-      $input.setAttribute('data-value', $select.value);
-
-      $delBtn.innerHTML = `<svg class="delete-btn__icon"><use xlink:href="./img/svg/sprite.svg#delete"></use></svg>`;
-      $delBtn.setAttribute('title', 'Удалить контакт');
-
-      $delBtn.addEventListener('click', () => {
-        $contactBlock.remove();
-        checkContactsLength();
-      });
-
-      $select.addEventListener('change', (el) => {
-        $input.setAttribute('data-value', el.target.value);
-        changeInputType($input, el.target.value);
-      });
-
-      return $contactBlock;
-
-    };
-
-    const changeInputType = (input, value) => {
-      if (value === 'phone' || value === 'add-phone') {
-        input.setAttribute('type', 'tel');
-        new Inputmask("+7 (999) 999-99-99").mask(input);
-      } else if (value === 'email') {
-        input.setAttribute('type', 'email');
-        removeMask(input);
+      const sorted = filteredClients.sort(clientsFilter(field));
+      if (!reversed) {
+        renderTable(sorted);
       } else {
-        input.setAttribute('type', 'text');
-        removeMask(input);
+        renderTable(sorted.reverse());
       };
     };
 
-    // Create Item:
+    // Фильтрация таблицы:
 
-    const createItem = (element = 'div', className = '', value = '', attrName, attrValue) => {
-      const item = document.createElement(element);
-      item.setAttribute('class', className);
-      item.textContent = value;
-      if (attrName && attrValue) {
-        item.setAttribute(attrName, attrValue);
-      };
-      return item;
-    };
-
-    // Создание нового клиента:
-
-    $createClientBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      let error = formValidate($popupForm);
-      if (error === 0) {
-        console.log('Создаём нового клиента!');
-        createClient('', $popupInputSurname.value, $popupInputName.value, $popupInputMiddlename.value, $contactsBlock);
-        // closePopup();
-        clearForm();
-        $popupFormInputs.forEach(
-          input => input.parentNode.classList.remove('is-valid')
-        );
-      };
-    });
-
-    const createClient = (id, surname, name, middlename, contactsBlock, createDate, editDate) => {
-
-      const client = new Object();
-
-      if (!id) {
-        client.id = getID();
+    const tableFilter = (clients) => {
+      const filter = $tableFilter.value;
+      let filteredClients;
+      if (filter) {
+        filteredClients = clients.filter((client) => {
+          return Object.keys(client).some((key) => {
+            if (key === 'id' || key === 'name' || key === 'surname' || key === 'lastName') {
+              return client[key].toString().toLowerCase().includes(filter.toLowerCase());
+            } else if (key === 'createdAt' || key === 'updatedAt') {
+              return new Date(client[key]).toLocaleDateString().includes(filter);
+            } else if (key === 'contacts') {
+              return Object.keys(client.contacts).some((key) => {
+                return client.contacts[key].value.toString().toLowerCase().includes(filter.toLowerCase());
+              });
+            };
+          });
+        });
       } else {
-        client.id = id;
+        filteredClients = clients.slice(0);
       };
-      if (createDate && editDate) {
-        client.createDate = createDate;
-        client.editDate = editDate;
-      } else {
-        client.createDate = new Date();
-        client.editDate = client.createDate;
-      };
-      client.surname = surname;
-      client.name = name;
-      if (middlename) {
-        client.middlename = middlename;
-      };
-      if (contactsBlock) {
-        const clientContacts = new Object();
-        if (id) {
-          for (let contact in contactsBlock) {
-            clientContacts[contact] = contactsBlock[contact];
-          };
-          client.contacts = clientContacts;
-        } else {
-          addContacts(client, clientContacts, contactsBlock);
-        };
-      };
-
-      clients.push(client);
-      tableRow(client, false);
-      toLocal('clients');
-
+      return filteredClients;
     };
 
-    // Редактирование клиента:
-
-    $editClientBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      let error = formValidate($popupForm);
-      if (error === 0) {
-        console.log('Изменяем данные клиента!');
-        editClient(currentClientID, $popupInputSurname.value, $popupInputName.value, $popupInputMiddlename.value, $contactsBlock);
-        closePopup();
-        $popupFormInputs.forEach(
-          input => input.parentNode.classList.remove('is-valid')
-        );
-      };
-    });
-
-    const editClient = (id, surname, name, middlename, contactsBlock) => {
-      const client = clients[clients.findIndex(client => client.id == id)];
-      client.editDate = new Date();
-      if (client.contacts) {
-        delete client.contacts;
-      };
-      client.surname = surname;
-      client.name = name;
-      client.middlename = middlename;
-      if (contactsBlock) {
-        const clientContacts = new Object();
-        addContacts(client, clientContacts, contactsBlock);
-      };
-      tableRow(client, true);
-      toLocal('clients');
+    const filterDelay = () => {
+      let filterLatency;
+      clearTimeout(filterLatency);
+      filterLatency = setTimeout(() => {
+        renderTable(tableFilter(clients));
+      }, 300);
     };
+
+    $tableFilter.addEventListener('input', filterDelay);
 
     // Валидация формы:
 
@@ -372,7 +247,7 @@
       if (input.value.length < 2) {
         return true;
       } else {
-        if (contactType === 'phone' || contactType === 'add-phone') {
+        if (contactType === 'phone') {
           if (input.value.length != 18 || input.value.includes('_')) {
             return true;
           };
@@ -398,11 +273,11 @@
       if (input.value.length < 2) {
         input.parentNode.setAttribute('data-tooltip', 'Значение не должно быть короче двух символов');
       } else {
-        if (contactType === 'phone' || contactType === 'add-phone') {
-          input.parentNode.setAttribute('data-tooltip', 'Проверьте длину номера телефона');
+        if (contactType === 'phone') {
+          input.parentNode.setAttribute('data-tooltip', 'Некорректный номер телефона');
         };
         if (contactType === 'email') {
-          input.parentNode.setAttribute('data-tooltip', 'Проверьте правильность ввода e-mail');
+          input.parentNode.setAttribute('data-tooltip', 'Некорректный e-mail');
         };
         if (contactType === 'vk' || contactType === 'facebook') {
           input.parentNode.setAttribute('data-tooltip', 'Не допускается использование кириллицы');
@@ -434,42 +309,204 @@
       el.removeAttribute('data-tooltip');
     };
 
+    // Create Item (создание HTML-элемента):
+
+    const createItem = (element = 'div', className = '', value = '', attrName, attrValue) => {
+      const item = document.createElement(element);
+      item.setAttribute('class', className);
+      item.textContent = value;
+      if (attrName && attrValue) {
+        item.setAttribute(attrName, attrValue);
+      };
+      return item;
+    };
+
+    // Create New Contact:
+
+    $addContactBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      addContact();
+      checkContactsLength();
+    });
+
+    const addContact = (type, value) => {
+      const contact = createNewContact(type, value);
+      $contactsBlock.append(contact);
+      choicesSelect();
+      maskInputs();
+    };
+
+    const checkContactsLength = () => {
+      const contacts = document.querySelectorAll('.contacts-item');
+      if (contacts.length >= 10) {
+        $addContactBtn.classList.add('add-contact-btn--hidden');
+      } else if (contacts.length < 10 && $addContactBtn.classList.contains('add-contact-btn--hidden')) {
+        $addContactBtn.classList.remove('add-contact-btn--hidden');
+      };
+    };
+
+    const createNewContact = (type, value) => {
+
+      const $contactBlock = createItem('div', 'form-contacts__item contacts-item', '', '', );
+      const $select = createItem('select', 'contacts-item__select', '', 'name', 'contacts');
+      const $optionPhone = createItem('option', '', 'Телефон', 'value', 'phone');
+      const $optionEmail = createItem('option', '', 'Email', 'value', 'email');
+      const $optionVk = createItem('option', '', 'ВКонтакте', 'value', 'vk');
+      const $optionFacebook = createItem('option', '', 'Facebook', 'value', 'facebook');
+      const $optionOther = createItem('option', '', 'Другое', 'value', 'other');
+      const $input = createItem('input', 'contacts-item__input', '', 'type', 'tel');
+      const $delBtn = createItem('button', 'contacts-item__delete-btn', '', '', '');
+
+      $select.setAttribute('aria-label', 'Выбор способа связи');
+      $input.setAttribute('placeholder', 'Введите данные контакта');
+
+      $select.append($optionPhone, $optionEmail, $optionVk, $optionFacebook, $optionOther);
+      $contactBlock.append($select, $input, $delBtn);
+
+      if (type && value) {
+        $select.value = type;
+        $input.value = value;
+        changeInputType($input, type);
+      };
+
+      $input.setAttribute('data-value', $select.value);
+
+      $delBtn.innerHTML = `<svg class="delete-btn__icon"><use xlink:href="./img/svg/sprite.svg#delete"></use></svg>`;
+      $delBtn.setAttribute('title', 'Удалить контакт');
+
+      $delBtn.addEventListener('click', () => {
+        $contactBlock.remove();
+        checkContactsLength();
+      });
+
+      $select.addEventListener('change', (el) => {
+        $input.setAttribute('data-value', el.target.value);
+        changeInputType($input, el.target.value);
+      });
+
+      return $contactBlock;
+
+    };
+
+    const changeInputType = (input, value) => {
+      if (value === 'phone') {
+        input.setAttribute('type', 'tel');
+        new Inputmask("+7 (999) 999-99-99").mask(input);
+      } else if (value === 'email') {
+        input.setAttribute('type', 'email');
+        removeMask(input);
+      } else {
+        input.setAttribute('type', 'text');
+        removeMask(input);
+      };
+    };
+
     // Добавляем контакты к объекту клиента:
 
-    const addContacts = (client, clientContacts, contactsBlock) => {
+    const addContacts = (contactsBlock) => {
+
+      const clientContacts = new Array();
+
       const contacts = contactsBlock.querySelectorAll('.contacts-item');
       if (contacts.length != 0) {
         contacts.forEach((el) => {
           const input = el.querySelector('.contacts-item__input');
-          const attr = findContactsCoincidence(clientContacts, input.getAttribute('data-value'));
+          let type = input.getAttribute('data-value');
           let value;
           if (input.inputmask) {
-            value = input.inputmask.unmaskedvalue();
+            value = '+7' + input.inputmask.unmaskedvalue();
           } else {
             value = input.value;
           };
           if (value.length > 1) {
-            clientContacts[attr] = value;
+            const contact = new Object({
+              type,
+              value,
+            });
+            clientContacts.push(contact);
           };
         });
-        client.contacts = clientContacts;
+
+        return clientContacts;
+
       };
     };
 
-    // Поиск совпадений ключей в объекте, и, если найдено - добавление к ключу спец. символа '_':
+    // Создание нового клиента:
 
-    const findContactsCoincidence = (clientContacts, value) => {
-      for (let key in clientContacts) {
-        if (key === value) {
-          value += '_';
+    $createClientBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      let error = formValidate($popupForm);
+      if (error === 0) {
+        const newClient = await createClient('', $popupInputSurname.value, $popupInputName.value, $popupInputMiddlename.value, $contactsBlock);
+        if (newClient) {
+          clearForm();
+          clients.push(newClient);
+          renderTable(tableFilter(clients));
         };
       };
-      return value;
+    });
+
+    const createClient = async (id, surname, name, lastName, contactsBlock) => {
+
+      const client = new Object();
+
+      client.surname = surname;
+      client.name = name;
+      if (lastName) {
+        client.lastName = lastName;
+      };
+      if (contactsBlock) {
+        if (id) {
+          client.contacts = contactsBlock;
+        } else {
+          client.contacts = addContacts(contactsBlock);
+        };
+      };
+
+      const newClient = await addClient(client, $createClientBtn);
+      return newClient;
+
+    };
+
+    // Редактирование клиента:
+
+    $editClientBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      let error = formValidate($popupForm);
+      if (error === 0) {
+        const editedClient = await editClient(currentClientID, $popupInputSurname.value, $popupInputName.value, $popupInputMiddlename.value, $contactsBlock);
+        if (editedClient) {
+          closePopup();
+          clients[clients.findIndex(client => client.id === editedClient.id)] = editedClient;
+          renderTable(tableFilter(clients));
+        };
+      };
+    });
+
+    const editClient = async (id, surname, name, lastName, contactsBlock) => {
+
+      const client = await getClient(id);
+
+      if (client.contacts) {
+        delete client.contacts;
+      };
+      client.surname = surname;
+      client.name = name;
+      if (lastName) {
+        client.lastName = lastName;
+      };
+
+      client.contacts = addContacts(contactsBlock);
+
+      const editedClient = await patchClient(client, $editClientBtn);
+      return editedClient;
+
     };
 
     // Ряд в таблице:
 
-    const tableRow = (client, edit) => {
+    const tableRow = (client) => {
 
       const getTime = (date) => {
         let hours = String(date.getHours());
@@ -483,42 +520,34 @@
         return `${hours}:${minutes}`;
       };
 
-      const fullName = client.middlename ? `${client.surname} ${client.name} ${client.middlename}` : `${client.surname} ${client.name}`;
-      const createDate = new Date(client.createDate).toLocaleDateString();
-      const createTime = getTime(new Date(client.createDate));
-      const editDate = new Date(client.editDate).toLocaleDateString();
-      const editTime = getTime(new Date(client.editDate));
+      const fullName = client.lastName ? `${client.surname} ${client.name} ${client.lastName}` : `${client.surname} ${client.name}`;
+      const createdAt = new Date(client.createdAt).toLocaleDateString();
+      const createTime = getTime(new Date(client.createdAt));
+      const updatedAt = new Date(client.updatedAt).toLocaleDateString();
+      const updateTime = getTime(new Date(client.updatedAt));
 
-      if (edit) {
-        editTableRow(client, fullName, editDate, editTime);
-      } else {
-        newTableRow(client, fullName, createDate, createTime, editDate, editTime);
-      };
-
-      totalClients(false);
+      newTableRow(client, fullName, createdAt, createTime, updatedAt, updateTime);
 
     };
 
-    // Функция создания ряда таблицы:
+    // Функция создания нового ряда таблицы:
 
-    const newTableRow = (client, fullName, createDate, createTime, editDate, editTime) => {
+    const newTableRow = (client, fullName, createdAt, createTime, updatedAt, updateTime) => {
 
-      let $row, $id, $fullName, $createDate, $editDate, $contacts, $actions, $editBtn, $delBtn;
+      let $row, $id, $fullName, $createdAt, $updatedAt, $contacts, $actions, $editBtn, $delBtn;
 
       $row = createItem('tr', 'table__row', '', 'data-id', client.id);
       $id = createItem('td', 'table__cell table__cell--id', `${client.id}`, '', '');
       $fullName = createItem('td', 'table__cell table__cell--name', fullName, '', '');
-      $createDate = createItem('td', 'table__cell table__cell--date table__cell--create-date', '', 'aria-label', 'Дата создания клиента');
-      $editDate = createItem('td', 'table__cell table__cell--date table__cell--edit-date', '', 'aria-label', 'Дата последнего изменения клиента');
+      $createdAt = createItem('td', 'table__cell table__cell--date table__cell--create-date', '', 'aria-label', 'Дата создания клиента');
+      $updatedAt = createItem('td', 'table__cell table__cell--date table__cell--edit-date', '', 'aria-label', 'Дата последнего изменения клиента');
       $contacts = createItem('td', 'table__cell table__cell--contacts', '', '', '');
       $actions = createItem('td', 'table__cell table__cell--actions', '', '', '');
       $editBtn = createItem('button', 'table__btn table__edit-btn', '', 'data-path', 'client-popup');
       $delBtn = createItem('button', 'table__btn table__delete-btn', '', 'data-path', 'del-client-popup');
 
-      $createDate.innerHTML = `${createDate} <span>${createTime}</span>`;
-      $createDate.setAttribute('data-date', `${new Date(client.createDate) - new Date(0)}`);
-      $editDate.innerHTML = `${editDate} <span>${editTime}</span>`;
-      $editDate.setAttribute('data-date', `${new Date(client.editDate) - new Date(0)}`);
+      $createdAt.innerHTML = `${createdAt} <span>${createTime}</span>`;
+      $updatedAt.innerHTML = `${updatedAt} <span>${updateTime}</span>`;
       $editBtn.innerHTML = '<span>Изменить</span>';
       $delBtn.innerHTML = '<span>Удалить</span>';
 
@@ -528,47 +557,13 @@
 
       clientBtns($editBtn, $delBtn, $row);
 
-      $row.append($id, $fullName, $createDate, $editDate, $contacts, $actions);
+      $row.append($id, $fullName, $createdAt, $updatedAt, $contacts, $actions);
 
       $tableBody.append($row);
 
     };
 
-    // Функция редактирования ряда таблицы:
-
-    const editTableRow = (client, fullName, editDate, editTime) => {
-
-      let $row, $id, $fullName, $createDate, $editDate, $contacts, $actions, $editBtn, $delBtn;
-
-      $row = document.querySelector(`[data-id="${client.id}"]`);
-      $id = $row.querySelector('.table__cell--id');
-      $fullName = $row.querySelector('.table__cell--name');
-      $createDate = $row.querySelector('.table__cell--create-date');
-      $editDate = $row.querySelector('.table__cell--edit-date');
-      $contacts = $row.querySelector('.table__cell--contacts');
-      $actions = $row.querySelector('.table__cell--actions');
-      $editBtn = $row.querySelector('.table__edit-btn');
-      $delBtn = $row.querySelector('.table__delete-btn');
-
-      $fullName.innerText = fullName;
-      $editDate.innerHTML = `${editDate} <span>${editTime}</span>`;
-      $editDate.setAttribute('data-date', `${new Date(client.editDate) - new Date(0)}`);
-      $editBtn.innerHTML = '<span>Изменить</span>';
-      $delBtn.innerHTML = '<span>Удалить</span>';
-
-      if (client.contacts) {
-        clearContacts(client.id);
-      };
-
-      addContactsLinks(client, $contacts);
-
-      clientBtns($editBtn, $delBtn, $row);
-
-      $row.append($id, $fullName, $createDate, $editDate, $contacts, $actions);
-
-    };
-
-    // Функция для управления кнопками Редиктирования и Удаления клиента:
+    // Функция для управления кнопками Редактирования и Удаления клиента:
 
     const clientBtns = (edit, del, row) => {
 
@@ -589,38 +584,35 @@
     const addContactsLinks = (client, $contacts) => {
 
       if (client.contacts) {
-        for (let contact in client.contacts) {
+
+        client.contacts.forEach((contact) => {
           const $contact = createItem('a', 'table__body-link', '', '', '');
-          if (contact.includes('phone')) {
-            $contact.classList.add('table__body-link--phone');
-            $contact.setAttribute('href', `tel:+7${client.contacts[contact]}`);
-            $contact.setAttribute('data-tooltip', `Телефон: +7 (${client.contacts[contact].slice(0, 3)}) ${client.contacts[contact].slice(3, 6)}-${client.contacts[contact].slice(6, 8)}-${client.contacts[contact].slice(8)}`);
-          } else if (contact.includes('email')) {
-            $contact.classList.add('table__body-link--mail');
-            $contact.setAttribute('href', `mailto:${client.contacts[contact]}`);
-            $contact.setAttribute('data-tooltip', `Эл. почта: ${client.contacts[contact]}`);
-          } else if (contact.includes('vk')) {
-            $contact.classList.add('table__body-link--vk');
-            $contact.setAttribute('href', `${client.contacts[contact]}`);
+          $contact.classList.add(`table__body-link--${contact.type}`);
+          if (contact.type === 'phone') {
+            $contact.setAttribute('href', `tel:${contact.value}`);
+            $contact.setAttribute('data-tooltip', `Телефон: +7 (${contact.value.slice(2, 5)}) ${contact.value.slice(5, 8)}-${contact.value.slice(8, 10)}-${contact.value.slice(10)}`);
+          } else if (contact.type === 'email') {
+            $contact.setAttribute('href', `mailto:${contact.value}`);
+            $contact.setAttribute('data-tooltip', `Эл. почта: ${contact.value}`);
+          } else if (contact.type === 'vk') {
+            $contact.setAttribute('href', `${contact.value}`);
             $contact.setAttribute('aria-label', 'ВКонтакте');
-            $contact.setAttribute('data-tooltip', `ВКонтакте: ${client.contacts[contact]}`);
-          } else if (contact.includes('facebook')) {
-            $contact.classList.add('table__body-link--facebook');
-            $contact.setAttribute('href', `${client.contacts[contact]}`);
+            $contact.setAttribute('data-tooltip', `ВКонтакте: ${contact.value}`);
+          } else if (contact.type === 'facebook') {
+            $contact.setAttribute('href', `${contact.value}`);
             $contact.setAttribute('aria-label', 'Facebook');
-            $contact.setAttribute('data-tooltip', `Facebook: ${client.contacts[contact]}`);
+            $contact.setAttribute('data-tooltip', `Facebook: ${contact.value}`);
           } else {
-            $contact.classList.add('table__body-link--other');
-            $contact.setAttribute('href', `${client.contacts[contact]}`);
+            $contact.setAttribute('href', `${contact.value}`);
             $contact.setAttribute('aria-label', 'Контакт клиента');
-            $contact.setAttribute('data-tooltip', `Др. контакт: ${client.contacts[contact]}`);
+            $contact.setAttribute('data-tooltip', `Др. контакт: ${contact.value}`);
           };
-          if (contact.includes('vk') || contact.includes('facebook') || contact.includes('other')) {
+          if (contact.type === 'vk' || contact.type === 'facebook' || contact.type === 'other') {
             $contact.setAttribute('rel', 'noopener');
             $contact.setAttribute('target', '_blank');
           };
           $contacts.append($contact);
-        };
+        });
         if ($contacts.getElementsByTagName('a').length > 4) {
           const contactsLinks = [...$contacts.getElementsByTagName('a')];
           const hiddenContacts = contactsLinks.length - 4;
@@ -650,45 +642,11 @@
 
     };
 
-    // Удаление клиента:
-
-    const removeClient = (id) => {
-
-      clients.splice(clients.findIndex(client => client.id == id), 1);
-      document.querySelector(`[data-id="${id}"]`).remove();
-      console.log(`Клиент с ID: ${id} удалён`);
-      toLocal('clients');
-      totalClients(false);
-
-    };
-
-    // Удаление всех контактов клиента:
-
-    const clearContacts = (id) => {
-
-      const $row = document.querySelector(`[data-id="${id}"]`);
-      const $contactsLinks = $row.querySelectorAll('.table__body-link');
-      $contactsLinks.forEach((el) => {
-        el.remove();
-      });
-
-    };
-
-    // Получение ID клиента:
-
-    const getID = () => {
-
-      // let id = 100000 + clients.length;
-      let id = Math.floor(Math.random() * 100000);
-      return id;
-
-    };
-
     // Общее количество клиентов:
 
     const totalClients = (filtered) => {
       if (filtered) {
-        const $rows = document.querySelectorAll('.table__row:not(.table__row--hidden)');
+        const $rows = document.querySelectorAll('.table__row');
         $tableFooter.querySelector('th').innerHTML = `Клиентов (фильтр): <span>${$rows.length}</span>`;
         if ($rows.length === 0) {
           $tableFooter.classList.add('table__footer--hidden');
@@ -705,18 +663,20 @@
       }
     };
 
-    // Очистка полей формы:
+    // Очистка полей формы модального окна:
 
     const clearForm = () => {
 
       $popupFormInputs.forEach((el) => {
+        el.parentNode.classList.remove('is-valid', 'is-invalid')
         el.value = '';
         checkPopupInputs(el);
       });
       document.querySelectorAll('.contacts-item').forEach((el) => {
         el.remove();
-        checkContactsLength();
       });
+      checkContactsLength();
+      clearError();
 
     };
 
@@ -724,30 +684,46 @@
 
     const newClientPopup = () => {
 
+      showElement($createClientBtn);
+      hideElement($editClientBtn);
+      hideElement($deleteClientBtn);
+      $popupCancelBtns.forEach((el) => {
+        showElement(el);
+      });
+
       $popupTitle.innerHTML = 'Новый клиент';
+      $addContactBtn.classList.remove('add-contact-btn--hidden');
 
     };
 
-    const editClientPopup = (id) => {
+    const editClientPopup = async (id, el) => {
 
-      const $client = clients[clients.findIndex(client => client.id == id)];
-      $popupTitle.innerHTML = `Изменить данные <span>ID: ${id}</span>`;
-      $popupInputSurname.value = $client.surname;
-      $popupInputName.value = $client.name;
-      if ($client.middlename) {
-        $popupInputMiddlename.value = $client.middlename;
+      hideElement($createClientBtn);
+      showElement($editClientBtn);
+      showElement($deleteClientBtn);
+      $popupCancelBtns.forEach((el) => {
+        hideElement(el);
+      });
+
+      const client = await getClient(id, el);
+
+      $popupTitle.innerHTML = `Изменить данные <span>ID:&nbsp;${id}</span>`;
+      $popupInputSurname.value = client.surname;
+      $popupInputName.value = client.name;
+      if (client.lastName) {
+        $popupInputMiddlename.value = client.lastName;
       };
       $popupFormInputs.forEach((el) => {
         checkPopupInputs(el);
       });
-      for (let contact in $client.contacts) {
-        addContact(contact, $client.contacts[contact]);
-        checkContactsLength();
-      };
+      client.contacts.forEach((contact) => {
+        addContact(contact.type, contact.value);
+      });
+      checkContactsLength();
 
     };
 
-    const openPopup = (el, id) => {
+    const openPopup = async (el, id) => {
       let path;
       if (typeof el != 'string') {
         path = el.getAttribute('data-path');
@@ -755,42 +731,53 @@
         path = el;
       };
       closePopup();
-      document.querySelector(`[data-target="${path}"]`).classList.add('popup--visible');
-      $popupOverlay.classList.add('popup-overlay--visible');
+      const $popup = document.querySelector(`[data-target="${path}"]`);
       if (path === 'client-popup' && !id) {
-        $createClientBtn.style.display = 'block';
-        $editClientBtn.style.display = 'none';
-        $deleteClientBtn.style.display = 'none';
-        $popupCancelBtns.forEach((el) => {
-          el.style.display = 'block';
-        });
         newClientPopup();
       } else if (path === 'client-popup' && id) {
         currentClientID = id;
-        $createClientBtn.style.display = 'none';
-        $editClientBtn.style.display = 'block';
-        $deleteClientBtn.style.display = 'block';
-        $popupCancelBtns.forEach((el) => {
-          el.style.display = 'none';
-        });
-        editClientPopup(id);
+        await editClientPopup(id, el);
       } else if (path === 'del-client-popup' && id) {
         currentClientID = id;
         $popupCancelBtns.forEach((el) => {
-          el.style.display = 'block';
+          showElement(el);
         });
       };
+      $popup.parentNode.classList.add('popup-overlay--visible');
+      $popup.classList.add('popup--visible');
+      disableScroll();
     };
 
-    const closePopup = () => {
-      clearForm();
-      $popupOverlay.classList.remove('popup-overlay--visible');
+    const closePopup = async () => {
+      $popupOverlay.forEach(el => el.classList.remove('popup-overlay--visible'));
       $popups.forEach((el) => {
         el.classList.remove('popup--visible');
       });
-      $popupFormInputs.forEach(
-        input => input.parentNode.classList.remove('is-valid', 'is-invalid')
-      );
+      await delay(800);
+      $addContactBtn.classList.add('add-contact-btn--hidden');
+      clearForm();
+      $popupSubmitBtns.forEach((el) => {
+        if (el.classList.contains('_loading') || el.classList.contains('_error')) {
+          el.classList.remove('_loading', '_error')
+        };
+      });
+      enableScroll();
+    };
+
+    // Сообщение об ошибке при работе с базой данных клиентов:
+
+    const addError = (error) => {
+      $errorDescription.forEach((el) => {
+        el.innerHTML = error;
+      });
+    };
+
+    const clearError = () => {
+      $errorDescription.forEach((el) => {
+        if (el.innerHTML) {
+          el.innerHTML = '';
+        };
+      });
     };
 
     // Обработчики событий:
@@ -807,11 +794,14 @@
       openPopup('del-client-popup', currentClientID);
     });
 
-    $submitDeleteClientBtn.addEventListener('click', (e) => {
-      console.log('Удаляем клиента!');
+    $submitDeleteClientBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-      removeClient(currentClientID);
-      closePopup();
+      const deletedClient = await deleteClient(currentClientID, $submitDeleteClientBtn);
+      if (deletedClient) {
+        closePopup();
+        clients.splice(clients.findIndex(client => client.id === deletedClient), 1);
+        renderTable(tableFilter(clients));
+      };
     });
 
     $popupCancelBtns.forEach((el) => {
@@ -828,15 +818,21 @@
       });
     });
 
-    $popupOverlay.addEventListener('click', (e) => {
-      if (e.target === $popupOverlay) {
-        closePopup();
-      };
+    $popupOverlay.forEach((el) => {
+      el.addEventListener('click', (e) => {
+        if (e.target.classList.contains('popup-overlay')) {
+          closePopup();
+        };
+      });
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.code === 'Escape' && $popupOverlay.classList.contains('popup-overlay--visible')) {
-        closePopup();
+      if (e.code === 'Escape') {
+        $popupOverlay.forEach((el) => {
+          if (el.classList.contains('popup-overlay--visible')) {
+            closePopup();
+          };
+        });
       };
     });
 
@@ -890,35 +886,189 @@
       if (el.inputmask) {
         el.inputmask.remove();
       };
-    }
-
-    // LocalStorage:
-
-    const toLocal = (clientsList) => {
-      localStorage.setItem([clientsList.toString()], JSON.stringify(clients));
     };
 
-    const fromLocal = (clientsList) => {
-      if (JSON.parse(localStorage[clientsList.toString()]).length != 0) {
-        const list = JSON.parse(localStorage[clientsList.toString()]);
-        for (let i = 0; i < list.length; i++) {
-          createClient(list[i].id, list[i].surname, list[i].name, list[i].middlename, list[i].contacts, list[i].createDate, list[i].editDate);
+    // Работа с сервером:
+
+    // Загрузка списка клиентов:
+
+    const url = 'http://localhost:3000/api/clients';
+
+    // Анимация загрузки:
+
+    const startLoadingAnimation = async (el) => {
+      el.classList.remove('_error');
+      el.classList.add('_loading');
+      if (!el.classList.contains('clients__table')) {
+        el.setAttribute('disabled', 'true');
+      };
+      const ms = Math.ceil(Math.random() * (2000 - 1000) + 1000);
+      await delay(ms);
+    };
+
+    const stopLoadingAnimation = (el) => {
+      el.classList.remove('_error', '_loading');
+      if (!el.classList.contains('clients__table')) {
+        el.removeAttribute('disabled', 'true');
+      } else if (el.classList.contains('clients__table')) {
+        $newUserBtn.classList.remove('visually-hidden');
+      };
+    };
+
+    const showLoadingError = (el, message) => {
+      el.classList.remove('_loading');
+      el.classList.add('_error');
+      if (!el.classList.contains('clients__table')) {
+        el.removeAttribute('disabled');
+      };
+      if (message) {
+        addError(message);
+      };
+    };
+
+    // Загрузка массива с данными клиентов:
+
+    const loadClients = async () => {
+      try {
+        await startLoadingAnimation($clientsTable);
+        const response = await fetch(url, {
+          method: 'GET',
+        });
+        if (response.ok) {
+          stopLoadingAnimation($clientsTable);
+          const data = await response.json();
+          return data;
+        } else {
+          showLoadingError($clientsTable);
+        };
+      } catch (e) {
+        console.error(e);
+        showLoadingError($clientsTable);
+      };
+    };
+
+    // Добавляем клиента:
+
+    const addClient = async (client, el) => {
+      console.log(`Добавляем клиента в базу данных...`);
+      try {
+        await startLoadingAnimation(el);
+        const response = await fetch(url, {
+          method: 'POST',
+          body: JSON.stringify(client),
+          headers: {
+            'Content-Type': 'application/json'
+          },
+        });
+        if (response.ok) {
+          stopLoadingAnimation(el);
+          const data = await response.json();
+          console.log('Клиент успешно создан:', data);
+          return data;
+        };
+      } catch (e) {
+        console.error(e);
+        showLoadingError(el, `<p>Возникла ошибка при добавлении клиента, обратитесь к системному администратору. Описание ошибки: ${e}</p>`);
+      };
+    };
+
+    // Получаем клиента:
+
+    const getClient = async (id, el) => {
+      console.log(`Выполняется загрузка данных клиента c ID: ${id}...`);
+      try {
+        if (el) {
+          await startLoadingAnimation(el);
+        };
+        const response = await fetch(url + `/${id}`, {
+          method: 'GET',
+        });
+        if (response.ok) {
+          if (el) {
+            stopLoadingAnimation(el);
+          };
+          const data = await response.json();
+          console.log('Данные клиента:', data);
+          return data;
+        } else {
+          if (el) {
+            showLoadingError(el);
+          };
+        };
+      } catch (e) {
+        console.error(e);
+        // el.setAttribute('data-tooltip', 'Ошибка при получении данных');
+        if (el) {
+          showLoadingError(el);
         };
       };
     };
 
-    if (localStorage['clients']) {
-      fromLocal('clients');
-      console.log(clients);
+    // Изменяем клиента:
+
+    const patchClient = async (client, el) => {
+      console.log(`Выполняется обновление данных клиента ID: ${client.id}...`);
+      try {
+        await startLoadingAnimation(el);
+        const response = await fetch(url + `/${client.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(client),
+          headers: {
+            'Content-Type': 'application/json'
+          },
+        });
+        if (response.ok) {
+          stopLoadingAnimation(el);
+          const data = await response.json();
+          console.log('Обновлённые данные клиента:', data);
+          return data;
+        };
+      } catch (e) {
+        console.error(e);
+        showLoadingError(el, `<p>Возникла ошибка при редактировании данных клиента, обратитесь к системному администратору. Описание ошибки: ${e}</p>`);
+      };
+    };
+
+    // Удаляем клиента:
+
+    const deleteClient = async (id, el) => {
+      console.log(`Выполняется удаление клиента ID: ${id}...`);
+      try {
+        await startLoadingAnimation(el);
+        const response = await fetch(url + `/${id}`, {
+          method: 'DELETE',
+        });
+        if (response.ok) {
+          stopLoadingAnimation(el);
+          // const data = await response.json();
+          console.log(`Клиент с ID: ${id} успешно удалён`);
+          return id;
+        };
+      } catch (e) {
+        console.error(e);
+        showLoadingError(el, `<p>Возникла ошибка при удалении клиента, обратитесь к системному администратору. Описание ошибки: ${e}</p>`);
+      };
     };
 
     // Текущий год в Footer:
 
     document.querySelector('.footer__year').innerText = new Date().getFullYear();
 
-    totalClients(false);
+    // Запуск действиё после загрузки страницы:
 
-    $tableSort[0].querySelector('span').click();
+    const pageLoaded = async () => {
+      console.log('Выполняется загрузка списка клиентов...');
+      const data = await loadClients();
+      if (data) {
+        clients = data.slice(0);
+        console.log('Список клиентов:', clients);
+        renderTable(clients);
+        $tableSort[0].querySelector('span').click();
+        document.querySelector('.popups').style.display = "block";
+      };
+    };
+
+    pageLoaded();
 
   });
 
