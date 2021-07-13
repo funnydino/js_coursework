@@ -438,12 +438,14 @@
       e.preventDefault();
       let error = formValidate($popupForm);
       if (error === 0) {
+        lockingForm();
         const newClient = await createClient('', $popupInputSurname.value, $popupInputName.value, $popupInputMiddlename.value, $contactsBlock);
         if (newClient) {
           clearForm();
           clients.push(newClient);
           renderTable(tableFilter(clients));
         };
+        unlockingForm();
       };
     });
 
@@ -475,12 +477,14 @@
       e.preventDefault();
       let error = formValidate($popupForm);
       if (error === 0) {
+        lockingForm();
         const editedClient = await editClient(currentClientID, $popupInputSurname.value, $popupInputName.value, $popupInputMiddlename.value, $contactsBlock);
         if (editedClient) {
           closePopup();
           clients[clients.findIndex(client => client.id === editedClient.id)] = editedClient;
           renderTable(tableFilter(clients));
         };
+        unlockingForm();
       };
     });
 
@@ -680,6 +684,16 @@
 
     };
 
+    // Блокировка полей формы:
+
+    const lockingForm = () => {
+      document.querySelector('.popup--client').classList.add('popup--lock');
+    };
+
+    const unlockingForm = () => {
+      document.querySelector('.popup--client').classList.remove('popup--lock');
+    };
+
     // Popups:
 
     const newClientPopup = () => {
@@ -705,7 +719,7 @@
         hideElement(el);
       });
 
-      const client = await getClient(id, el);
+      let client = typeof el != 'string' ? await getClient(id, el) : await getClient(id);
 
       $popupTitle.innerHTML = `Изменить данные <span>ID:&nbsp;${id}</span>`;
       $popupInputSurname.value = client.surname;
@@ -721,6 +735,8 @@
       });
       checkContactsLength();
 
+      location.hash = id;
+
     };
 
     const openPopup = async (el, id) => {
@@ -730,7 +746,7 @@
       } else {
         path = el;
       };
-      closePopup();
+      // closePopup();
       const $popup = document.querySelector(`[data-target="${path}"]`);
       if (path === 'client-popup' && !id) {
         newClientPopup();
@@ -791,6 +807,7 @@
 
     $deleteClientBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      closePopup();
       openPopup('del-client-popup', currentClientID);
     });
 
@@ -1065,10 +1082,24 @@
         renderTable(clients);
         $tableSort[0].querySelector('span').click();
         document.querySelector('.popups').style.display = "block";
+        checkLocationHash();
       };
     };
 
     pageLoaded();
+
+    const checkLocationHash = () => {
+      const hash = location.hash.replace('#', '');
+      if (!document.querySelector('.popup--visible')) {
+        if (hash != '' && clients.find(client => client.id == hash)) {
+          openPopup('client-popup', hash);
+        } else if (hash != '' && !clients.find(client => client.id == hash)) {
+          console.log('Клиент с таким хешем не найден :(');
+        };
+      };
+    };
+
+    window.onhashchange = checkLocationHash;
 
   });
 
