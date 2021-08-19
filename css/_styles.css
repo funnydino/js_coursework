@@ -425,7 +425,7 @@ input.focus-visible {
 
 }
 
-/* .table__head-cell span:active, */
+.table__head-cell span:active,
 .table__head-cell span.focus-visible {
   border-bottom: 3px solid var(--main-color);
   color: var(--main-hover-color);
